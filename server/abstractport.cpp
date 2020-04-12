@@ -64,8 +64,10 @@ AbstractPort::~AbstractPort()
 
 void AbstractPort::init()
 {
+#if 0 // The EXA8 software is vertically integrated, so no host devices
     if (deviceManager_)
         deviceManager_->createHostDevices();
+#endif
 }    
 
 /*! Can we modify Port with these params? Should modify cause port dirty? */
