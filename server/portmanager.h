@@ -40,6 +40,7 @@ public:
 private:
     AbstractPort::Accuracy rateAccuracy();
     bool filterAcceptsPort(const char *name);
+    QString portAlias(const char *name);
 
 private:
     pcap_if_t* GetPortList();

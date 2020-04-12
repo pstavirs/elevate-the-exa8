@@ -70,6 +70,18 @@ void AbstractPort::init()
 #endif
 }    
 
+void AbstractPort::protoDataCopyInto(OstProto::Port *port)
+{
+    port->CopyFrom(data_);
+
+    if (!alias_.isEmpty()) {
+#if !defined(Q_OS_WIN32)
+        port->set_description(port->name());
+#endif
+        port->set_name(alias_.toStdString());
+    }
+}
+
 /*! Can we modify Port with these params? Should modify cause port dirty? */
 bool AbstractPort::canModify(const OstProto::Port &port, bool *dirty)
 {

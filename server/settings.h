@@ -41,5 +41,6 @@ const QString kRpcServerAddress("RpcServer/Address");
 //
 const QString kPortListIncludeKey("PortList/Include");
 const QString kPortListExcludeKey("PortList/Exclude");
+const QString kPortListAliasKey("PortList/Alias");
 
 #endif

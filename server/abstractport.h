@@ -73,7 +73,7 @@ public:
 
     int id() { return data_.port_id().id(); }
     const char* name() { return data_.name().c_str(); }
-    void protoDataCopyInto(OstProto::Port *port) { port->CopyFrom(data_); }
+    void protoDataCopyInto(OstProto::Port *port);
 
     bool canModify(const OstProto::Port &port, bool *dirty);
     bool modify(const OstProto::Port &port);
@@ -83,6 +83,8 @@ public:
     virtual OstProto::LinkState linkState() { return linkState_; }
     virtual bool hasExclusiveControl() = 0;
     virtual bool setExclusiveControl(bool exclusive) = 0;
+
+    void setAlias(QString alias) { alias_ = alias; }
 
     int streamCount() { return streamList_.size(); }
     StreamBase* streamAtIndex(int index);
@@ -158,6 +160,8 @@ protected:
     DeviceManager *deviceManager_;
 
 private:
+    QString alias_;
+
     bool    isSendQueueDirty_;
 
     static const int kMaxPktSize = 16384;

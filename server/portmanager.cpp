@@ -104,6 +104,14 @@ PortManager::PortManager()
             continue;
         }
 
+#if defined(Q_OS_WIN32)
+        QString alias = portAlias(device->description);
+#else
+        QString alias = portAlias(device->name);
+#endif
+        if (!alias.isEmpty())
+            port->setAlias(alias);
+
         const InterfaceInfo *intfInfo = port->interfaceInfo();
         if (intfInfo) {
             qDebug("Mac: %012llx", intfInfo->mac);
@@ -264,4 +272,18 @@ _include_pass:
 
     // Port did not match a pattern in ExcludeList
     return true;
+}
+
+QString PortManager::portAlias(const char *name)
+{
+    QStringList aliasList = appSettings->value(kPortListAliasKey)
+                                    .toStringList();
+
+    foreach (QString aliasSpec, aliasList) {
+        QStringList nameAlias = aliasSpec.split(':');
+        if (nameAlias.size() >= 2 && (nameAlias.at(0) == name))
+            return nameAlias.at(1);
+    }
+
+    return QString();
 }
