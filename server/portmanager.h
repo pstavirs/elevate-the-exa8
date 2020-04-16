@@ -39,7 +39,6 @@ public:
 
 private:
     AbstractPort::Accuracy rateAccuracy();
-    bool filterAcceptsPort(const char *name);
 
 private:
     struct Interface

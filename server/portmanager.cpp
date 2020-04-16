@@ -73,14 +73,6 @@ PortManager::PortManager()
                 intf.description(),
                 intf.alias());
 
-        if (!filterAcceptsPort(intf.eponym()))
-        {
-            qDebug("%s (%s) rejected by filter. Skipping!",
-                    intf.name(), intf.description());
-            i--;
-            continue;
-        }
-
 #if defined(Q_OS_WIN32)
         port = new WinPcapPort(i, intf.name(), intf.description());
 #elif defined(Q_OS_LINUX)
@@ -169,6 +161,21 @@ PortManager::InterfaceList* PortManager::GetInterfaceList()
     auto luid2Alias = MyGetProcAddress(ipHlpApi, ConvertInterfaceLuidToAlias);
 #endif
 
+    // Read include/exclude port lists
+    QRegExp pattern;
+    QStringList includeList = appSettings->value(kPortListIncludeKey)
+                                    .toStringList();
+    QStringList excludeList = appSettings->value(kPortListExcludeKey)
+                                    .toStringList();
+
+    // NOTE: A blank "IncludeList=" is read as a stringlist with one
+    // string which is empty => treat it same as an empty stringlist
+    if (includeList.size() == 1 && includeList.at(0).isEmpty())
+        includeList.clear();
+
+    pattern.setPatternSyntax(QRegExp::Wildcard);
+
+    // Read port alias list
     QMap<QByteArray, QByteArray> aliasMap;
     QStringList aliasList = appSettings->value(kPortListAliasKey)
                                     .toStringList();
@@ -180,7 +187,7 @@ PortManager::InterfaceList* PortManager::GetInterfaceList()
     }
 
     for(pcap_if_t *device = deviceList; device != NULL; device = device->next) {
-        // TODO: Move filterAcceptsPort functionality here
+
         Interface intf;
         intf.name_ = QByteArray(device->name);
         intf.description_ = QByteArray(device->description);
@@ -199,7 +206,39 @@ PortManager::InterfaceList* PortManager::GetInterfaceList()
         }
 #endif
         intf.alias_ = aliasMap.value(intf.eponym());
-        interfaceList->append(intf);
+
+        // Run intf through filter rules - include/exclude
+        bool pass = false;
+
+        // An empty (or missing) includeList accepts all ports
+        if (includeList.isEmpty())
+            pass = true;
+        else {
+            foreach (QString str, includeList) {
+                pattern.setPattern(str);
+                if (pattern.exactMatch(intf.eponym())) {
+                    pass = true;
+                    break;
+                }
+            }
+        }
+
+        // If include list passes, check against exclude list
+        if (pass) {
+            foreach (QString str, excludeList) {
+                pattern.setPattern(str);
+                if (pattern.exactMatch(intf.eponym())) {
+                    pass = false;
+                    break;
+                }
+            }
+        }
+
+        if (pass)
+            interfaceList->append(intf);
+        else
+            qDebug("%s (%s) rejected by filter. Skipping!",
+                    intf.name(), intf.description());
     }
 
     std::sort(interfaceList->begin(), interfaceList->end());
@@ -230,41 +269,4 @@ AbstractPort::Accuracy PortManager::rateAccuracy()
                  qPrintable(rateAccuracy));
 
     return AbstractPort::kHighAccuracy;
-}
-
-bool PortManager::filterAcceptsPort(const char *name)
-{
-    QRegExp pattern;
-    QStringList includeList = appSettings->value(kPortListIncludeKey)
-                                    .toStringList();
-    QStringList excludeList = appSettings->value(kPortListExcludeKey)
-                                    .toStringList();
-
-    pattern.setPatternSyntax(QRegExp::Wildcard);
-
-    // An empty (or missing) includeList accepts all ports
-    // NOTE: A blank "IncludeList=" is read as a stringlist with one
-    // string which is empty => treat it same as an empty stringlist
-    if (includeList.isEmpty()
-            || (includeList.size() == 1 && includeList.at(0).isEmpty()))
-        goto _include_pass;
-
-    foreach (QString str, includeList) {
-        pattern.setPattern(str);
-        if (pattern.exactMatch(name))
-            goto _include_pass;
-    }
-
-    // IncludeList is not empty and port did not match a pattern
-    return false;
-
-_include_pass:
-    foreach (QString str, excludeList) {
-        pattern.setPattern(str);
-        if (pattern.exactMatch(name))
-            return false;
-    }
-
-    // Port did not match a pattern in ExcludeList
-    return true;
 }
