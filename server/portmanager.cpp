@@ -47,7 +47,6 @@ NETIO_STATUS WINAPI ConvertInterfaceLuidToAlias(
 PortManager::PortManager()
 {
     int i;
-    pcap_if_t *device;
     AbstractPort::Accuracy txRateAccuracy;
 
     qDebug("PCAP Lib: %s", pcap_lib_version());
@@ -63,54 +62,45 @@ PortManager::PortManager()
 
     txRateAccuracy = rateAccuracy();
 
-    pcap_if_t *deviceList = GetPortList();
-
-    for(device = deviceList, i = 0; device != NULL; device = device->next, i++)
+    InterfaceList *interfaceList = GetInterfaceList();
+    for (i = 0; i < interfaceList->size(); i++)
     {
+        const Interface &intf = interfaceList->at(i);
         AbstractPort *port;
       
-        qDebug("%d. %s", i, device->name);
-        if (device->description)
-            qDebug(" (%s)\n", device->description);
+        qDebug("%d. %s (%s) [%s]\n", i,
+                intf.name(),
+                intf.description(),
+                intf.alias());
 
-#if defined(Q_OS_WIN32)
-        if (!filterAcceptsPort(device->description))
-#else
-        if (!filterAcceptsPort(device->name))
-#endif
+        if (!filterAcceptsPort(intf.eponym()))
         {
             qDebug("%s (%s) rejected by filter. Skipping!",
-                    device->name, device->description);
+                    intf.name(), intf.description());
             i--;
             continue;
         }
 
 #if defined(Q_OS_WIN32)
-        port = new WinPcapPort(i, device->name, device->description);
+        port = new WinPcapPort(i, intf.name(), intf.description());
 #elif defined(Q_OS_LINUX)
-        port = new LinuxPort(i, device->name);
+        port = new LinuxPort(i, intf.name());
 #elif defined(Q_OS_BSD4)
-        port = new BsdPort(i, device->name);
+        port = new BsdPort(i, intf.name());
 #else
-        port = new PcapPort(i, device->name);
+        port = new PcapPort(i, intf.name());
 #endif
 
         if (!port->isUsable())
         {
             qDebug("%s: unable to open %s. Skipping!", __FUNCTION__,
-                    device->name);
+                    intf.name());
             delete port;
             i--;
             continue;
         }
 
-#if defined(Q_OS_WIN32)
-        QString alias = portAlias(device->description);
-#else
-        QString alias = portAlias(device->name);
-#endif
-        if (!alias.isEmpty())
-            port->setAlias(alias);
+        port->setAlias(intf.alias());
 
         const InterfaceInfo *intfInfo = port->interfaceInfo();
         if (intfInfo) {
@@ -133,7 +123,7 @@ PortManager::PortManager()
         portList_.append(port);
     }
 
-    FreePortList(deviceList);
+    FreeInterfaceList(interfaceList);
 
     foreach(AbstractPort *port, portList_)
         port->init();
@@ -163,63 +153,68 @@ PortManager* PortManager::instance()
     return instance_;       
 }
 
-pcap_if_t* PortManager::GetPortList()
+PortManager::InterfaceList* PortManager::GetInterfaceList()
 {
     pcap_if_t *deviceList = NULL;
     char errbuf[PCAP_ERRBUF_SIZE];
+    InterfaceList *interfaceList = new InterfaceList();
 
     if (pcap_findalldevs(&deviceList, errbuf) == -1)
         qDebug("Error in pcap_findalldevs_ex: %s\n", errbuf);
 
 #if defined(Q_OS_WIN32)
     // Use windows' connection name as the description for a better UX
-    ipHlpApi_ = LoadLibrary(TEXT("ipHlpApi.dll"));
-    auto guid2Luid = MyGetProcAddress(ipHlpApi_, ConvertInterfaceGuidToLuid);
-    auto luid2Alias = MyGetProcAddress(ipHlpApi_, ConvertInterfaceLuidToAlias);
+    HMODULE ipHlpApi = LoadLibrary(TEXT("ipHlpApi.dll"));
+    auto guid2Luid = MyGetProcAddress(ipHlpApi, ConvertInterfaceGuidToLuid);
+    auto luid2Alias = MyGetProcAddress(ipHlpApi, ConvertInterfaceLuidToAlias);
+#endif
 
-    if (guid2Luid && luid2Alias) {
-        pcap_if_t *device;
-        for(device = deviceList; device != NULL; device = device->next) {
+    QMap<QByteArray, QByteArray> aliasMap;
+    QStringList aliasList = appSettings->value(kPortListAliasKey)
+                                    .toStringList();
+    foreach (QString aliasSpec, aliasList) {
+        QStringList nameAlias = aliasSpec.split(':');
+        if (nameAlias.size() >= 2)
+            aliasMap.insert(nameAlias.at(0).toLatin1(),
+                            nameAlias.at(1).toLatin1());
+    }
+
+    for(pcap_if_t *device = deviceList; device != NULL; device = device->next) {
+        // TODO: Move filterAcceptsPort functionality here
+        Interface intf;
+        intf.name_ = QByteArray(device->name);
+        intf.description_ = QByteArray(device->description);
+#if defined(Q_OS_WIN32)
+        // Use windows' connection name as the description for a better UX
+        if (guid2Luid && luid2Alias) {
             GUID guid = static_cast<GUID>(QUuid(
-                            QString(device->name).remove("\\Device\\NPF_")));
+                            QString(intf.name()).remove("\\Device\\NPF_")));
             NET_LUID luid;
-
-            oldDescriptions_.append(device->description);
-            newDescriptions_.append(new QByteArray());
             if (guid2Luid(&guid, &luid) == NO_ERROR) {
                 WCHAR conn[256];
-                if (luid2Alias(&luid, conn, 256) == NO_ERROR) {
-                    *(newDescriptions_.last()) = QString().fromWCharArray(conn)
-                                                            .toLocal8Bit();
-                    device->description = newDescriptions_.last()->data();
-                }
+                if (luid2Alias(&luid, conn, 256) == NO_ERROR)
+                    intf.description_ = QString::fromWCharArray(conn)
+                        .toLocal8Bit();
             }
         }
-    }
 #endif
+        intf.alias_ = aliasMap.value(intf.eponym());
+        interfaceList->append(intf);
+    }
 
-    return deviceList;
+    std::sort(interfaceList->begin(), interfaceList->end());
+
+#if defined(Q_OS_WIN32)
+    if (ipHlpApi)
+        FreeLibrary(ipHlpApi);
+#endif
+    pcap_freealldevs(deviceList);
+    return interfaceList;
 }
 
-void PortManager::FreePortList(pcap_if_t *deviceList)
+void PortManager::FreeInterfaceList(InterfaceList *interfaceList)
 {
-#if defined(Q_OS_WIN32)
-    int i = 0;
-    pcap_if_t *device;
-    if (oldDescriptions_.size()) {
-        for(device = deviceList; device != NULL; device = device->next)
-            device->description = oldDescriptions_.at(i++);
-    }
-    oldDescriptions_.clear();
-
-    while (newDescriptions_.size())
-        delete newDescriptions_.takeFirst();
-
-    if (ipHlpApi_)
-        FreeLibrary(ipHlpApi_);
-#endif
-
-    pcap_freealldevs(deviceList);
+    free(interfaceList);
 }
 
 AbstractPort::Accuracy PortManager::rateAccuracy()
@@ -272,18 +267,4 @@ _include_pass:
 
     // Port did not match a pattern in ExcludeList
     return true;
-}
-
-QString PortManager::portAlias(const char *name)
-{
-    QStringList aliasList = appSettings->value(kPortListAliasKey)
-                                    .toStringList();
-
-    foreach (QString aliasSpec, aliasList) {
-        QStringList nameAlias = aliasSpec.split(':');
-        if (nameAlias.size() >= 2 && (nameAlias.at(0) == name))
-            return nameAlias.at(1);
-    }
-
-    return QString();
 }

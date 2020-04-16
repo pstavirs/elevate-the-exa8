@@ -40,20 +40,36 @@ public:
 private:
     AbstractPort::Accuracy rateAccuracy();
     bool filterAcceptsPort(const char *name);
-    QString portAlias(const char *name);
 
 private:
-    pcap_if_t* GetPortList();
-    void FreePortList(pcap_if_t *deviceList);
+    struct Interface
+    {
+        const char* name() const { return name_.data(); }
+        const char* description() const { return description_.data(); }
+        const char* alias() const { return alias_.data(); }
+        QByteArray eponym() const {
+#if defined(Q_OS_WIN32)
+                return description_;
+#else
+                return name_;
+#endif
+        }
+        bool operator<(const Interface &other) {
+            return (alias_ == other.alias_) ? eponym() < other.eponym()
+                        : alias_ < other.alias_;
+        }
+
+        QByteArray name_;
+        QByteArray description_;
+        QByteArray alias_;
+    };
+    using InterfaceList = QList<Interface>;
+
+    InterfaceList *GetInterfaceList();
+    void FreeInterfaceList(InterfaceList *interfaceList);
 
     QList<AbstractPort*>    portList_;
     static PortManager      *instance_;
-#ifdef Q_OS_WIN32
-    HMODULE                 ipHlpApi_;
-    QList<char*>            oldDescriptions_;
-    QList<QByteArray*>      newDescriptions_;
-#endif
-
 };
 
 #endif
