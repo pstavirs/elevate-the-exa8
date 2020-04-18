@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include <QString>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QtWebSockets/QWebSocket>
 
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/message.h>
@@ -69,6 +70,9 @@ class PbRpcChannel : public QObject, public ::google::protobuf::RpcChannel
     QString            mServerHost;
     quint16            mServerPort;
     QTcpSocket        *mpSocket;
+#ifdef __EMSCRIPTEN__
+    QWebSocket         mWebSocket;
+#endif
 
     ::google::protobuf::io::CopyingInputStreamAdaptor  *inStream;
     ::google::protobuf::io::CopyingOutputStreamAdaptor *outStream;

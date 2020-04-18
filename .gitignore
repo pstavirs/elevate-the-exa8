@@ -9,6 +9,16 @@
 drone
 ostinato
 
+# Qt Webassembly generated files
+*.obj
+*.rsp
+*.html
+*.js
+*.wasm
+qtlogo.svg
+*_plugin_import.cpp
+target_wrapper.bat
+
 # Qt generated files
 ui_*.h
 moc_*.h

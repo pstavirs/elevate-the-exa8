@@ -79,6 +79,11 @@ MainWindow::MainWindow(QWidget *parent)
         serverApp.append("/drone");
 #endif
 
+#ifdef __EMSCRIPTEN__
+        // For wasm builds, local server is started externally
+        // but we still try connect to it at startup
+        localServer_ = NULL;
+#else
         qDebug("staring local server - %s", qPrintable(serverApp));
         localServer_ = new QProcess(this);
         connect(localServer_, SIGNAL(finished(int, QProcess::ExitStatus)),
@@ -88,6 +93,7 @@ MainWindow::MainWindow(QWidget *parent)
         localServer_->setProcessChannelMode(QProcess::ForwardedChannels);
         localServer_->start(serverApp, QStringList());
         QTimer::singleShot(5000, this, SLOT(stopLocalServerMonitor()));
+#endif
     }
     else
         localServer_ = NULL;

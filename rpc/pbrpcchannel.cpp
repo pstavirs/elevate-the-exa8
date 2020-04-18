@@ -76,6 +76,16 @@ void PbRpcChannel::establish()
 {
     qDebug("In %s", __FUNCTION__);
 
+#ifdef __EMSCRIPTEN__
+    // WASM can only use websockets; tunneling of normal TCP socket is
+    // done over websocket by running an external proxy such as websockify
+    // The websocket tcp port is one less than the actual port drone
+    // is listening on. websockify will proxy between them
+    QUrl url{QString("ws://%1:%2").arg(mServerHost).arg(mServerPort-1)};
+    QNetworkRequest request{url};
+    request.setRawHeader("Sec-WebSocket-Protocol", "binary");
+    mWebSocket.open(request);
+#endif
     mpSocket->connectToHost(mServerHost, mServerPort);
 }
 
