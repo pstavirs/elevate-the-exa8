@@ -322,11 +322,21 @@ void PortsWindow::on_tvStreamList_activated(const QModelIndex & index)
     QList<Stream*> streams;
     streams.append(curPort.mutableStreamByIndex(index.row(), false));
 
+#ifdef __EMSCRIPTEN__
+    auto scd = new StreamConfigDialog(streams, curPort, this);
+    connect(scd, &StreamConfigDialog::accepted,
+            [&curPort, scd]() {
+                curPort.recalculateAverageRates();
+                curPort.setLocalConfigChanged(true);
+                scd->deleteLater(); });
+    scd->show();
+#else
     StreamConfigDialog scd(streams, curPort, this);
     if (scd.exec() == QDialog::Accepted) {
         curPort.recalculateAverageRates();
         curPort.setLocalConfigChanged(true);
     }
+#endif
 }
 
 void PortsWindow::when_portView_currentChanged(const QModelIndex& currentIndex,
@@ -817,10 +827,23 @@ void PortsWindow::on_actionPort_Configuration_triggered()
     config.set_is_exclusive_control(port.hasExclusiveControl());
     config.set_user_name(port.userName().toStdString());
 
+#ifdef __EMSCRIPTEN__
+    auto config2 = new OstProto::Port;
+    config2->CopyFrom(config);
+    auto dialog = new PortConfigDialog(*config2, port.getStats().state(), this);
+    connect(dialog, &PortConfigDialog::accepted,
+            [=]() {
+                plm->portGroup(current.parent())
+                        .modifyPort(current.row(), *config2);
+                delete config2;
+                dialog->deleteLater(); });
+    dialog->show();
+#else
     PortConfigDialog dialog(config, port.getStats().state(), this);
 
     if (dialog.exec() == QDialog::Accepted)
         plm->portGroup(current.parent()).modifyPort(current.row(), config);
+#endif
 }
 
 void PortsWindow::on_actionNew_Stream_triggered()
@@ -854,10 +877,20 @@ void PortsWindow::on_actionNew_Stream_triggered()
     for (int i = 0; i < count; i++)
         streams.append(new Stream);
 
+#ifdef __EMSCRIPTEN__
+    auto scd = new StreamConfigDialog(streams, curPort, this);
+    scd->setWindowTitle(tr("Add Stream"));
+    connect(scd, &StreamConfigDialog::accepted,
+            [=]() mutable {
+                streamModel->insert(row, streams);
+                scd->deleteLater(); });
+    scd->show();
+#else
     StreamConfigDialog scd(streams, curPort, this);
     scd.setWindowTitle(tr("Add Stream"));
     if (scd.exec() == QDialog::Accepted)
         streamModel->insert(row, streams);
+#endif
 }
 
 void PortsWindow::on_actionEdit_Stream_triggered()
@@ -876,11 +909,21 @@ void PortsWindow::on_actionEdit_Stream_triggered()
     foreach(QModelIndex index, streamModel->selectedRows())
         streams.append(curPort.mutableStreamByIndex(index.row(), false));
 
+#ifdef __EMSCRIPTEN__
+    auto scd = new StreamConfigDialog(streams, curPort, this);
+    connect(scd, &StreamConfigDialog::accepted,
+            [&curPort, scd]() {
+                curPort.recalculateAverageRates();
+                curPort.setLocalConfigChanged(true);
+                scd->deleteLater(); });
+    scd->show();
+#else
     StreamConfigDialog scd(streams, curPort, this);
     if (scd.exec() == QDialog::Accepted) {
         curPort.recalculateAverageRates();
         curPort.setLocalConfigChanged(true);
     }
+#endif
 }
 
 void PortsWindow::on_actionDuplicate_Stream_triggered()
