@@ -1,7 +1,7 @@
 TEMPLATE = lib
 CONFIG += qt staticlib
-# websockets required for wasm, but otherwise
-QT += network websockets
+QT += network
+wasm:QT += websockets
 DEFINES += HAVE_REMOTE
 LIBS += -lprotobuf
 HEADERS += rpcserver.h rpcconn.h pbrpccontroller.h pbrpcchannel.h pbqtio.h

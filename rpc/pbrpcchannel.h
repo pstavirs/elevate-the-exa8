@@ -23,7 +23,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include <QString>
 #include <QTcpServer>
 #include <QTcpSocket>
+#ifdef __EMSCRIPTEN__
 #include <QtWebSockets/QWebSocket>
+#endif
 
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/message.h>
