@@ -4,6 +4,7 @@ macx: TARGET = Ostinato
 win32:RC_FILE = ostinato.rc
 macx:ICON = icons/logo.icns
 QT += widgets network script xml
+wasm: QT += websockets
 INCLUDEPATH += "../rpc/" "../common/"
 win32 {
     QMAKE_LFLAGS += -static
