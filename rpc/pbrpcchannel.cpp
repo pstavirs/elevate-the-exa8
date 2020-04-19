@@ -85,8 +85,10 @@ void PbRpcChannel::establish()
     QNetworkRequest request{url};
     request.setRawHeader("Sec-WebSocket-Protocol", "binary");
     mWebSocket.open(request);
-#endif
+    mpSocket->connectToHost(mServerHost, mServerPort-1);
+#else
     mpSocket->connectToHost(mServerHost, mServerPort);
+#endif
 }
 
 void PbRpcChannel::establish(QString serverName, quint16 port)
