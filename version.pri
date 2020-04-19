@@ -6,11 +6,11 @@ APP_REVISION = $(shell git rev-parse --short=12 --verify HEAD)
 ver_info {
     APP_VERSION_FILE = version.cpp
     revtarget.target = $$APP_VERSION_FILE
-    win32:revtarget.commands = echo "cost char *version = \"$$APP_VERSION\";" \
+    win32:revtarget.commands = echo "const char *version = \"$$APP_VERSION\";" \
             "const char *revision = \"$$APP_REVISION\";" \
             > $$APP_VERSION_FILE
     unix:revtarget.commands = echo \
-            "\"cons char *version = \\\"$$APP_VERSION\\\";" \
+            "\"const char *version = \\\"$$APP_VERSION\\\";" \
             "const char *revision = \\\"$$APP_REVISION\\\";\"" \
             > $$APP_VERSION_FILE
     wasm:revtarget.commands = echo "const char *version = \"$$APP_VERSION\";" \
