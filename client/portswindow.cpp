@@ -938,6 +938,29 @@ void PortsWindow::on_actionDuplicate_Stream_triggered()
 
     if (model->hasSelection())
     {
+#ifdef __EMSCRIPTEN__
+        auto inputDlg = new QInputDialog(this);
+        inputDlg->setWindowTitle("Duplicate Streams");
+        inputDlg->setInputMode(QInputDialog::IntInput);
+        inputDlg->setLabelText("Count");
+        inputDlg->setIntValue(1);
+        inputDlg->setIntMinimum(1);
+        inputDlg->setIntMaximum(9999);
+        inputDlg->setIntStep(1);
+        connect(inputDlg, &QInputDialog::finished,
+                [=](int result) {
+                    if (result == QDialog::Accepted) {
+                        int count = inputDlg->intValue();
+                        QList<int> list;
+                        foreach(QModelIndex index, model->selectedRows())
+                            list.append(index.row());
+                        plm->port(current).duplicateStreams(list, count);
+                    }
+                    inputDlg->deleteLater();
+                });
+        inputDlg->adjustSize();
+        inputDlg->show();
+#else
         bool isOk;
         int count = QInputDialog::getInt(this, "Duplicate Streams",
                 "Count", 1, 1, 9999, 1, &isOk);
@@ -949,6 +972,7 @@ void PortsWindow::on_actionDuplicate_Stream_triggered()
         foreach(QModelIndex index, model->selectedRows())
             list.append(index.row());
         plm->port(current).duplicateStreams(list, count);
+#endif
     }
     else
         qDebug("No selection");
