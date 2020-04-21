@@ -79,6 +79,11 @@ PortStatsWindow::PortStatsWindow(PortGroupList *pgl, QWidget *parent)
             SLOT(when_tvPortStats_selectionChanged(
                     const QItemSelection&, const QItemSelection&)));
     when_tvPortStats_selectionChanged(QItemSelection(), QItemSelection());
+
+#ifdef __EMSCRIPTEN__
+    // Hide port stats filter dialog till we fix the wasm exec issue with it
+    tbFilter->setHidden(true);
+#endif
 }
 
 PortStatsWindow::~PortStatsWindow()
