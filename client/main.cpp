@@ -84,6 +84,13 @@ int main(int argc, char* argv[])
     Preferences::initDefaults();
     qsrand(QDateTime::currentDateTime().toTime_t());
 
+#ifdef __EMSCRIPTEN__
+    // Default font size is 12pt, change it to 8pt
+    QFont font = app.font();
+    font.setPointSize(8);
+    app.setFont(font);
+#endif
+
     mainWindow = new MainWindow;
     mainWindow->show();
     exitCode =  app.exec();
