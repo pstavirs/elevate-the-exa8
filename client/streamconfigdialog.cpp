@@ -215,6 +215,19 @@ StreamConfigDialog::StreamConfigDialog(
     if (!lastGeometry.isNull())
         setGeometry(lastGeometry);
     twTopLevel->setCurrentIndex(lastTopLevelTabIndex);
+
+#ifdef __EMSCRIPTEN__
+    disconnect(pbOk, SIGNAL(clicked()), this, SLOT(on_pbOk_clicked()));
+    disconnect(pbPrev, SIGNAL(clicked()), this, SLOT(on_pbPrev_clicked()));
+    disconnect(pbNext, SIGNAL(clicked()), this, SLOT(on_pbNext_clicked()));
+
+    connect(pbOk, &QPushButton::clicked,
+            this, &StreamConfigDialog::isCurrentStreamValid);
+    connect(pbPrev, &QPushButton::clicked,
+            this, &StreamConfigDialog::isCurrentStreamValid);
+    connect(pbNext, &QPushButton::clicked,
+            this, &StreamConfigDialog::isCurrentStreamValid);
+#endif
 }
 
 void StreamConfigDialog::setupUiExtra()
@@ -1236,6 +1249,66 @@ void StreamConfigDialog::on_leBitsPerSec_textEdited(const QString &text)
     }
 }
 
+#ifdef __EMSCRIPTEN__
+bool StreamConfigDialog::isCurrentStreamValid()
+{
+    QStringList log;
+
+    StoreCurrentStream();
+
+    if ((mPort.transmitMode() == OstProto::kInterleavedTransmit)
+            && (mpStream->isFrameVariable()))
+    {
+        log << tr("In 'Interleaved Streams' transmit mode, the count for "
+            "varying fields at transmit time may not be same as configured");
+    }
+
+    if (!mPort.trackStreamStats()
+            && mpStream->hasProtocol(OstProto::Protocol::kSignFieldNumber))
+    {
+        log << tr("Stream contains special signature, but per stream statistics "
+            "will not be available till it is enabled on the port");
+    }
+
+    mpStream->preflightCheck(log);
+
+    if (log.size())
+    {
+        auto msgBox = new QMessageBox(QMessageBox::Warning, "Preflight Check",
+                    tr("<p>We found possible problems with this stream -</p>")
+                    + "<ul>"
+                    + log.replaceInStrings(QRegExp("(.*)"), "<li>\\1</li>")
+                        .join("\n")
+                    + "</ul>"
+                    + tr("<p>Ignore?</p>"),
+                    QMessageBox::Yes | QMessageBox::No, this);
+        QObject *button = sender();
+        connect(msgBox, &QMessageBox::finished,
+                [=](int result) {
+                    if (result == QMessageBox::Yes) {
+                        if (button == pbOk)
+                            on_pbOk_clicked();
+                        else if (button == pbPrev)
+                            on_pbPrev_clicked();
+                        else if (button == pbNext)
+                            on_pbNext_clicked();
+                    }
+                    msgBox->deleteLater();
+                });
+        msgBox->show();
+        return true; // retval is don't care for wasm
+    }
+
+    QObject *button = sender();
+    if (button == pbOk)
+        on_pbOk_clicked();
+    else if (button == pbPrev)
+        on_pbPrev_clicked();
+    else if (button == pbNext)
+        on_pbNext_clicked();
+    return true; // retval is don't care for wasm
+}
+#else
 bool StreamConfigDialog::isCurrentStreamValid()
 {
     QStringList log;
@@ -1272,15 +1345,18 @@ bool StreamConfigDialog::isCurrentStreamValid()
 
     return true;
 }
+#endif
 
 void StreamConfigDialog::on_pbPrev_clicked()
 {
     Q_ASSERT(mCurrentStreamIndex > 0);
 
+#ifndef __EMSCRIPTEN__
     StoreCurrentStream();
 
     if (!isCurrentStreamValid())
         return;
+#endif
 
     delete _iter;
     mpStream = _streamList.at(--mCurrentStreamIndex);
@@ -1297,10 +1373,12 @@ void StreamConfigDialog::on_pbNext_clicked()
 {
     Q_ASSERT(int(mCurrentStreamIndex) < (_streamList.size()-1));
 
+#ifndef __EMSCRIPTEN__
     StoreCurrentStream();
 
     if (!isCurrentStreamValid())
         return;
+#endif
 
     delete _iter;
     mpStream = _streamList.at(++mCurrentStreamIndex);
@@ -1316,11 +1394,13 @@ void StreamConfigDialog::on_pbNext_clicked()
 
 void StreamConfigDialog::on_pbOk_clicked()
 {
+#ifndef __EMSCRIPTEN__
     // Store dialog contents into current stream
     StoreCurrentStream();
 
     if (!isCurrentStreamValid())
         return;
+#endif
 
     // Copy the working copy of streams to user provided streams
     Q_ASSERT(_userStreamList.size() == _streamList.size());
