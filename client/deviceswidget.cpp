@@ -217,6 +217,9 @@ void DevicesWidget::on_deviceGroupList_activated(const QModelIndex &index)
         return;
 
     DeviceGroupDialog dgd(&portGroups_->port(currentPortIndex_), index.row());
+#ifdef __EMSCRIPTEN__
+    dgd.adjustSize(); // for some reason wasm needs this
+#endif
     dgd.exec();
 }
 
