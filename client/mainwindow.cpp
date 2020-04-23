@@ -148,6 +148,12 @@ MainWindow::MainWindow(QWidget *parent)
     if (layout.size())
         restoreState(layout, 0);
 
+#ifdef __EMSCRIPTEN__
+    // Remove these actions till wasm support is added for 'em
+    menuFile->removeAction(actionOpenSession);
+    menuFile->removeAction(actionSaveSession);
+#endif
+
     connect(actionFileExit, SIGNAL(triggered()), this, SLOT(close()));
     connect(actionAboutQt, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
 

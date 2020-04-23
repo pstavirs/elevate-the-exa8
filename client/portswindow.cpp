@@ -78,12 +78,16 @@ PortsWindow::PortsWindow(PortGroupList *pgl, QWidget *parent)
     tvStreamList->addAction(actionDuplicate_Stream);
     tvStreamList->addAction(actionDelete_Stream);
 
+#ifdef __EMSCRIPTEN__
+    // Don't add open/save streams till wasm support is added for 'em
+#else
     sep = new QAction(this);
     sep->setSeparator(true);
     tvStreamList->addAction(sep);
 
     tvStreamList->addAction(actionOpen_Streams);
     tvStreamList->addAction(actionSave_Streams);
+#endif
 
     // PortList, StreamList, DeviceWidget actions combined
     // make this window's actions
