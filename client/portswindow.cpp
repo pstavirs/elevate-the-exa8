@@ -724,6 +724,48 @@ _exit:
 #endif
 }
 
+#ifdef __EMSCRIPTEN__
+void PortsWindow::on_actionNew_Port_Group_triggered()
+{
+    auto inputDlg = new QInputDialog(this);
+    inputDlg->setWindowTitle("Add Port Group");
+    inputDlg->setInputMode(QInputDialog::TextInput);
+    inputDlg->setLabelText("Port Group IP Address[:Port]\n"
+                           "(webapps can't do DNS)");
+    inputDlg->setTextValue(lastNewPortGroup);
+    connect(inputDlg, &QInputDialog::textValueSelected,
+        [&](QString text) {
+            QStringList addr = text.split(":");
+            quint16 port = DEFAULT_SERVER_PORT;
+
+            if (addr.size() > 2) { // IPv6 Address
+                // IPv6 addresses with port number SHOULD be specified as
+                // [2001:db8::1]:80 (RFC5952 Sec6) to avoid ambiguity due to ':'
+                addr = text.split("]:");
+                if (addr.size() > 1)
+                    port = addr[1].toUShort();
+            }
+            else if (addr.size() == 2) // Hostname/IPv4 + Port specified
+                port = addr[1].toUShort();
+
+            // Play nice and remove square brackets irrespective of addr type
+            addr[0].remove(QChar('['));
+            addr[0].remove(QChar(']'));
+
+            if (QHostAddress(addr[0]).protocol()
+                    == QAbstractSocket::UnknownNetworkLayerProtocol)
+                addr[0] = "0.0.0.0"; // Not a IP? override with "0.0.0.0"
+
+            PortGroup *pg = new PortGroup(addr[0], port);
+            plm->addPortGroup(*pg);
+            lastNewPortGroup = text;
+
+            inputDlg->deleteLater();
+        });
+    inputDlg->adjustSize();
+    inputDlg->show();
+}
+#else
 void PortsWindow::on_actionNew_Port_Group_triggered()
 {
     bool ok;
@@ -755,6 +797,7 @@ void PortsWindow::on_actionNew_Port_Group_triggered()
         lastNewPortGroup = text;
     }
 }
+#endif
 
 void PortsWindow::on_actionDelete_Port_Group_triggered()
 {
