@@ -179,7 +179,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(updater, SIGNAL(newVersionAvailable(QString)), 
             this, SLOT(onNewVersion(QString)));
+#ifdef __EMSCRIPTEN__
+    // skip for webapp due to CORS policy
+#else
     updater->checkForNewVersion();
+#endif
 
     // Add the "Local" Port Group
     if (appParams.optLocalDrone()) {
