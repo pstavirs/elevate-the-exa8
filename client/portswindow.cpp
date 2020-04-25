@@ -38,6 +38,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include <QMessageBox>
 #include <QSortFilterProxyModel>
 
+#ifdef __EMSCRIPTEN__
+#include "log.h"
+#endif
+
 extern QMainWindow *mainWindow;
 
 PortsWindow::PortsWindow(PortGroupList *pgl, QWidget *parent)
@@ -757,8 +761,11 @@ void PortsWindow::on_actionNew_Port_Group_triggered()
             addr[0].remove(QChar(']'));
 
             if (QHostAddress(addr[0]).protocol()
-                    == QAbstractSocket::UnknownNetworkLayerProtocol)
-                addr[0] = "0.0.0.0"; // Not a IP? override with "0.0.0.0"
+                    == QAbstractSocket::UnknownNetworkLayerProtocol) {
+                logError(addr[0], "The Ostinato webapp cannot do DNS, "
+                         "please specify the IP address of the port group");
+                addr[0] = "0.0.0.0"; // override with "0.0.0.0"
+            }
 
             PortGroup *pg = new PortGroup(addr[0], port);
             plm->addPortGroup(*pg);

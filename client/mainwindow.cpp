@@ -48,6 +48,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include <QTimer>
 #include <QUrl>
 
+#ifdef __EMSCRIPTEN__
+#include "emscripten.h"
+#include "log.h"
+#endif
+
 #ifdef Q_OS_WIN32
 #define WIN32_NO_STATUS
 #include <windows.h>
@@ -60,6 +65,16 @@ extern const char* revision;
 
 PortGroupList    *pgl;
 LogsModel        *appLogs;
+
+#ifdef __EMSCRIPTEN__
+EM_JS(const char*, get_localhost, (), {
+  var jsString = location.hostname;
+  var len = lengthBytesUTF8(jsString)+1; // .length is UTF-16 len
+  var stringOnWasmHeap = _malloc(len);
+  stringToUTF8(jsString, stringOnWasmHeap, len);
+  return stringOnWasmHeap;
+});
+#endif
 
 MainWindow::MainWindow(QWidget *parent) 
     : QMainWindow (parent)
@@ -168,8 +183,24 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Add the "Local" Port Group
     if (appParams.optLocalDrone()) {
+#ifdef __EMSCRIPTEN__
+        const char *str = get_localhost();
+        QString localDrone(str);
+        free((void*)str); // free wasm alloc'd string now that we have a copy
+
+        if (QHostAddress(localDrone).protocol()
+                == QAbstractSocket::UnknownNetworkLayerProtocol) {
+            logError(localDrone, "The Ostinato webapp cannot do DNS, "
+                     "please specify the EXA8's IP address in the URL");
+            localDrone = "0.0.0.0";
+        }
+
+        PortGroup *pg = new PortGroup(localDrone);
+        pgl->addPortGroup(*pg);
+#else
         PortGroup *pg = new PortGroup;
         pgl->addPortGroup(*pg);
+#endif
     }
 
     if (appParams.argumentCount()) {
