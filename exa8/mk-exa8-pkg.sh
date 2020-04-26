@@ -8,6 +8,7 @@
 #
 gunzip exa8-ostinato.tgz
 tar rvf ../exa8/exa8-ostinato.tar --transform='s,^,exa8-ostinato/,' \
+    run.sh \
     drone.ini \
     -C ../server drone
 gzip exa8-ostinato.tar
