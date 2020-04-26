@@ -10,12 +10,15 @@ Before we download, install and run the exa8-ostinato package, we need to prepar
 ## Use Kernel driver instead of DPDK for Ethernet ports
 The pre-installed exa8 application puts all the ethernet ports under DPDK control. Ostinato uses Linux Kernel drivers instead of DPDK to access the ethernet ports, so our first step is to get the ethernet ports under Linux Kernel control.
 
-Comment out the following lines in `/mnt/data/arm_package/run_arm.sh` -
+Comment out **ALL** the following lines in `/mnt/data/arm_package/run_arm.sh` -
 ```sh
 #./dpdk-devbind.py --bind vfio-pci 0000:05:00.1
 #./dpdk-devbind.py --bind vfio-pci 0000:05:00.2
 #./dpdk-devbind.py --bind vfio-pci 0000:05:00.3
 
+#insmod ./mvmdio_uio.ko
+
+#./exa8_adapter_app board=exa8 xv=tap
 ```
 
 That should bring the X1, X2 interfaces (and the internal 10G port connected to the 1x8G switch) under kernel control - after a reboot. But don't reboot just yet. We need to get the G1-G8 ports also under Kernel control. To do that, dump the current value of the uboot `fdt_update` variable -
