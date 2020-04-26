@@ -9,14 +9,14 @@
 cd ../client
 cp icons/logo.png .
 sed -i 's/qtlogo.svg.*style/logo.png\" style/' ostinato.html
-ln -s ostinato.html index.html
-tar cvfz ../exa8/exa8-ostinato.tgz --transform='s,^,exa8-ostinato/webapp/,' \
-    index.html \
+ln -s ./ostinato.html index.html
+tar cvfz ../exa8/exa8-ostinato.tgz --transform='s,^,exa8-ostinato/webapp/,S' \
     ostinato.html \
     ostinato.js \
     ostinato.wasm \
     qtloader.js \
-    logo.png
+    logo.png \
+    index.html
 rm logo.png
 rm index.html
 cd -

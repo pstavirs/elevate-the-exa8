@@ -1,0 +1,3 @@
+* assumes certain things are already installed
+* in case of any questions, send email
+* native binaries - pricing/ask
