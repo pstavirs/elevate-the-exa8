@@ -60,6 +60,12 @@ PortsWindow::PortsWindow(PortGroupList *pgl, QWidget *parent)
     applyMsg_ = new ApplyMessage();
     devicesWidget->setPortGroupList(plm);
 
+#ifdef __EMSCRIPTEN__
+    QString welcomeMsg = label->text();
+    welcomeMsg.append("<p><b>The Ostinato Webapp is brand new and not exhaustively tested yet. Please use the native Ostinato controller application for production use!</b></p>");
+    label->setText(welcomeMsg);
+#endif
+
     tvPortList->header()->hide();
 
     tvStreamList->setItemDelegate(delegate);
