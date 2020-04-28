@@ -81,7 +81,7 @@ To access the webapp UI, open a browser on your laptop/desktop connected via the
 
 You should see the Ostinato GUI open as a webapp in the browser -
 
-FIXME: image
+![Ostinato on EXA8](exa8/ostinato-wasm.png)
 
 NOTE: Due to security restrictions and a sandboxed environment imposed on web applications by the browser, use only a IP address in the URL instead of a host/domain name to access the Ostinato Web UI.
 
@@ -90,7 +90,7 @@ The Ostinato webapp uses WebAssembly technology which is fairly recent, so make 
 Look at the [Ostinato documentation](https://userguide.ostinato.org) on how to use Ostinato.
 
 ### Important note on the Ostinato WebUI
-Webassembly is still developing as a technology. Support for it within build toolchains, Qt (the UI toolkit used by Ostinato) etc. is also work in progress currently and has limitations and sometimes even bugs. One major limitation (from Ostinato point of view) is the lack of support for modal dialogs - a workaround for it exists and I've made changes to the Ostinato code to use that workaround for typical actions that use modal dialogs, but **NOT** for all modal dialogs in the UI.
+Webassembly is still developing as a technology. Support for it within build toolchains, Qt (the UI toolkit used by Ostinato) etc. is also work in progress currently and has limitations and sometimes even bugs. One major limitation (from Ostinato point of view) is the lack of support for modal dialogs - a workaround for it exists and I've made changes to the Ostinato code to use that workaround for typical actions that use modal dialogs, but **NOT** for all modal dialogs in the UI. Also opening/saving files from the local filesystem is not permitted by the browser sandbox model, so the _Open/Save Session_ and _Open/Save Straams_ functionality has been removed from the webapp for the time being.
 
 If the Ostinato WebUI gets stuck at any point, just refresh the page.
 
@@ -178,6 +178,7 @@ make client
 **Notes**
 * Make sure you use the wasm version of `qmake`, not the native version
 * If the linking phase fails with undefined protobuf symbols, manually modify the `LIBS` variable in `client/Makefile.ostinato` to provide path of protobuf library to the linker using `-L <path-to-protobuf-wasm-lib>` - the emscripten/clang linker seems to (incorrectly) ignore the `LIBRARY_PATH` env var.
+* To view the debug logs, please link with `--emrun` option and while loading the webapp, append `?-d` to the URL
 
 The build artifacts (aka binaries) should be in the `ostinato-wasm/client` directory -
 ```sh
