@@ -42,7 +42,8 @@ void SyncChannel::establish()
 {
     qDebug("In %s", __FUNCTION__);
 
-    emit stateChanged(QAbstractSocket::ConnectedState);
+    state_ = QAbstractSocket::ConnectedState;
+    emit stateChanged(state_);
     emit connected();
 }
 
@@ -55,7 +56,8 @@ void SyncChannel::tearDown()
 {
     qDebug("In %s", __FUNCTION__);
 
-    emit stateChanged(QAbstractSocket::UnconnectedState);
+    state_ = QAbstractSocket::UnconnectedState;
+    emit stateChanged(state_);
     emit disconnected();
 }
 

@@ -47,8 +47,7 @@ public:
     const QString serverName() const { return QString("web-demo"); }
     quint16 serverPort() const { return 0; }
 
-    QAbstractSocket::SocketState state() const
-        { return QAbstractSocket::ConnectedState; }
+    QAbstractSocket::SocketState state() const { return state_; }
 
     void CallMethod(const ::google::protobuf::MethodDescriptor *method,
         ::google::protobuf::RpcController *controller,
@@ -71,6 +70,7 @@ private slots:
     void processRpcReply(::google::protobuf::Closure *done);
 
 private:
+    QAbstractSocket::SocketState state_{QAbstractSocket::UnconnectedState};
     ::google::protobuf::Service *cfgAgent_;
     const ::google::protobuf::Message &notifPrototype;
 #if 0 // FIXME: needed?
