@@ -1,9 +1,9 @@
 TEMPLATE = subdirs
-SUBDIRS = client server ostproto ostprotogui rpc extra
+SUBDIRS = client ostproto ostprotogui rpc extra cfgagent
 
 client.target = client
 client.file = client/ostinato.pro
-client.depends = ostproto ostprotogui rpc extra
+client.depends = ostproto ostprotogui rpc extra cfgagent
 
 server.target = server
 server.file = server/drone.pro
@@ -15,3 +15,6 @@ ostprotogui.file = common/ostprotogui.pro
 ostprotogui.depends = extra
 
 rpc.file = rpc/pbrpc.pro
+
+cfgagent.file = cfgagent/cfgagent.pro
+cfgagent.depends = ostproto

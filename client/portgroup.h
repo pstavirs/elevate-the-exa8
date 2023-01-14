@@ -26,7 +26,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include <QTcpSocket>
 
 #include "../common/protocol.pb.h"
+#ifdef WEBDEMO
+#include "syncchannel.h"
+using PbRpcChannel=SyncChannel;
+#else
 #include "pbrpcchannel.h"
+#endif
 
 /* TODO
 HIGH

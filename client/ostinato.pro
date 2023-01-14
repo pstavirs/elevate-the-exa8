@@ -5,31 +5,40 @@ win32:RC_FILE = ostinato.rc
 macx:ICON = icons/logo.icns
 QT += widgets network script xml
 wasm: QT += websockets
+wasm: DEFINES += WEBDEMO
+wasm: LIBS += -L $$(LIBRARY_PATH)
+wasm: LIBS += --emrun
 INCLUDEPATH += "../rpc/" "../common/"
 win32 {
     QMAKE_LFLAGS += -static
     CONFIG(debug, debug|release) {
         LIBS += -L"../common/debug" -lostprotogui -lostproto
         LIBS += -L"../rpc/debug" -lpbrpc
+        LIBS += -L"../cfgagent/debug" -lcfgagent
         POST_TARGETDEPS += \
             "../common/debug/libostprotogui.a" \
             "../common/debug/libostproto.a" \
-            "../rpc/debug/libpbrpc.a"
+            "../rpc/debug/libpbrpc.a" \
+            "../cfgagent/debug/libcfgagent.a"
     } else {
         LIBS += -L"../common/release" -lostprotogui -lostproto
         LIBS += -L"../rpc/release" -lpbrpc
+        LIBS += -L"../cfgagent/release" -lcfgagent
         POST_TARGETDEPS += \
             "../common/release/libostprotogui.a" \
             "../common/release/libostproto.a" \
-            "../rpc/release/libpbrpc.a"
+            "../rpc/release/libpbrpc.a" \
+            "../cfgagent/release/libcfgagent.a"
     }
 } else {
     LIBS += -L"../common" -lostprotogui -lostproto
     LIBS += -L"../rpc" -lpbrpc
+    LIBS += -L"../cfgagent" -lcfgagent
     POST_TARGETDEPS += \
         "../common/libostprotogui.a" \
         "../common/libostproto.a" \
-        "../rpc/libpbrpc.a"
+        "../rpc/libpbrpc.a" \
+        "../cfgagent/libcfgagent.a"
 }
 LIBS += -lprotobuf
 LIBS += -L"../extra/qhexedit2/$(OBJECTS_DIR)/" -lqhexedit2
