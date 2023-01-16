@@ -157,7 +157,8 @@ void ConfigAgent::startTransmit(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
-    controller->SetFailed("Pending implementation");
+    response->set_status(OstProto::Ack::kRpcSuccess);
+    controller->SetFailed("Packet Transmit is not supported in the web demo - please download the Ostinato Trial for all features");
 }
 
 void ConfigAgent::stopTransmit(
@@ -166,7 +167,8 @@ void ConfigAgent::stopTransmit(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
-    controller->SetFailed("Pending implementation");
+    response->set_status(OstProto::Ack::kRpcSuccess);
+    controller->SetFailed("Packet Transmit is not supported in the web demo - please download the Ostinato Trial for all features");
 }
 
 void ConfigAgent::startCapture(
@@ -175,7 +177,8 @@ void ConfigAgent::startCapture(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
-    controller->SetFailed("Pending implementation");
+    response->set_status(OstProto::Ack::kRpcSuccess);
+    controller->SetFailed("Packet Capture is not supported in the web demo - please download the Ostinato Trial for all features");
 }
 
 void ConfigAgent::stopCapture(
@@ -184,7 +187,8 @@ void ConfigAgent::stopCapture(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
-    controller->SetFailed("Pending implementation");
+    response->set_status(OstProto::Ack::kRpcSuccess);
+    controller->SetFailed("Packet Capture is not supported in the web demo - please download the Ostinato Trial for all features");
 }
 
 void ConfigAgent::getCaptureBuffer(
@@ -193,7 +197,7 @@ void ConfigAgent::getCaptureBuffer(
     ::OstProto::CaptureBuffer* response,
     ::google::protobuf::Closure* done)
 {
-    controller->SetFailed("Pending implementation");
+    controller->SetFailed("Packet Capture is not supported in the web demo - please download the Ostinato Trial for all features");
 }
 
 void ConfigAgent::getStats(
@@ -218,6 +222,7 @@ void ConfigAgent::clearStats(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
+    response->set_status(OstProto::Ack::kRpcSuccess);
     controller->SetFailed("Pending implementation");
 }
 
@@ -237,6 +242,7 @@ void ConfigAgent::clearStreamStats(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
+    response->set_status(OstProto::Ack::kRpcSuccess);
     controller->SetFailed("Pending implementation");
 }
 
@@ -271,6 +277,9 @@ void ConfigAgent::getDeviceGroupIdList(
 {
     quint32 portId = request->id();
     response->mutable_port_id()->set_id(ports_[portId]->id());
+    for (OstProto::DeviceGroup *dg: ports_[portId]->deviceGroups_) {
+        response->add_device_group_id()->CopyFrom(dg->device_group_id());
+    }
 }
 
 void ConfigAgent::getDeviceGroupConfig(
@@ -281,6 +290,13 @@ void ConfigAgent::getDeviceGroupConfig(
 {
     quint32 portId = request->port_id().id();
     response->mutable_port_id()->set_id(ports_[portId]->id());
+    for (int i = 0; i < request->device_group_id_size(); i++) {
+        quint32 dgId = request->device_group_id(i).id();
+        if (ports_[portId]->deviceGroups_.contains(dgId)) {
+            OstProto::DeviceGroup *dg = response->add_device_group();
+            dg->CopyFrom(*ports_[portId]->deviceGroups_.value(dgId));
+        }
+    }
 }
 
 void ConfigAgent::addDeviceGroup(
@@ -289,7 +305,12 @@ void ConfigAgent::addDeviceGroup(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
-    controller->SetFailed("Pending implementation");
+    quint32 portId = request->port_id().id();
+    for (int i = 0; i < request->device_group_id_size(); i++) {
+        quint32 dgId = request->device_group_id(i).id();
+        ports_[portId]->deviceGroups_.insert(dgId, new OstProto::DeviceGroup);
+    }
+    response->set_status(OstProto::Ack::kRpcSuccess);
 }
 
 void ConfigAgent::deleteDeviceGroup(
@@ -298,7 +319,12 @@ void ConfigAgent::deleteDeviceGroup(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
-    controller->SetFailed("Pending implementation");
+    quint32 portId = request->port_id().id();
+    for (int i = 0; i < request->device_group_id_size(); i++) {
+        quint32 dgId = request->device_group_id(i).id();
+        ports_[portId]->deviceGroups_.remove(dgId);
+    }
+    response->set_status(OstProto::Ack::kRpcSuccess);
 }
 
 void ConfigAgent::modifyDeviceGroup(
@@ -307,7 +333,15 @@ void ConfigAgent::modifyDeviceGroup(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
-    controller->SetFailed("Pending implementation");
+    quint32 portId = request->port_id().id();
+    for (int i = 0; i < request->device_group_size(); i++) {
+        quint32 dgId = request->device_group(i).device_group_id().id();
+        if (ports_[portId]->deviceGroups_.contains(dgId)) {
+            ports_[portId]->deviceGroups_[dgId]->CopyFrom(
+                    request->device_group(i));
+        }
+    }
+    response->set_status(OstProto::Ack::kRpcSuccess);
 }
 
 void ConfigAgent::getDeviceList(
@@ -318,6 +352,7 @@ void ConfigAgent::getDeviceList(
 {
     quint32 portId = request->id();
     response->mutable_port_id()->set_id(ports_[portId]->id());
+    controller->SetFailed("Get Devices - Device Groups can only be configured, not emulated in the web demo - please download the Ostinato Trial for all features");
 }
 
 
@@ -327,7 +362,8 @@ void ConfigAgent::resolveDeviceNeighbors(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
-    controller->SetFailed("Pending implementation");
+    response->set_status(OstProto::Ack::kRpcSuccess);
+    controller->SetFailed("Resolve Neighbors - ARP/NDP resolution is not supported in the web demo - please download the Ostinato Trial for all features");
 }
 
 void ConfigAgent::clearDeviceNeighbors(
@@ -336,7 +372,8 @@ void ConfigAgent::clearDeviceNeighbors(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
-    controller->SetFailed("Pending implementation");
+    response->set_status(OstProto::Ack::kRpcSuccess);
+    controller->SetFailed("Clear Neighbors - ARP/NDP resolution is not supported in the web demo - please download the Ostinato Trial for all features");
 }
 
 void ConfigAgent::getDeviceNeighbors(
@@ -347,6 +384,7 @@ void ConfigAgent::getDeviceNeighbors(
 {
     quint32 portId = request->id();
     response->mutable_port_id()->set_id(ports_[portId]->id());
+    controller->SetFailed("Get Neighbors - ARP/NDP resolution is not supported in the web demo - please download the Ostinato Trial for all features");
 }
 
 #pragma GCC diagnostic pop

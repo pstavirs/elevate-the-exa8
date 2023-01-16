@@ -33,6 +33,7 @@ struct ConfigPort : public QObject
 
     OstProto::Port data_;
     QHash<quint32, OstProto::Stream*> streams_;
+    QHash<quint32, OstProto::DeviceGroup*> deviceGroups_;
 };
 
 #endif
