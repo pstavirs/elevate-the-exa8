@@ -2,6 +2,8 @@
 
 This repository contains the code for [Ostinato](https://ostinato.org) ported for Cubro's EXA8 hardware. This is my entry for the [Elevate the EXA8](https://www.cubro.com/en/about-us/exa8-contest/) contest.
 
+**Update: Ostinato for EXA8 was adjudged :trophy: [joint winner](https://www.businesswire.com/news/home/20200804005499/en/Cubro-Announces-the-EXA8-Challenge-Winners) of the contest!**
+
 _Srivats (Author, Ostinato)_
 
 # Installation
