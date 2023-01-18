@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include "cfgagent.h"
 
 #include "cfgport.h"
+#include "../common/framevalueattrib.h"
 
 // FIXME: remove #pragma
 #pragma GCC diagnostic push
@@ -30,6 +31,10 @@ ConfigAgent::ConfigAgent(int numPorts)
     for (int i = 0; i < numPorts; i++) {
         ports_.append(new ConfigPort(i));
     }
+
+    statsTimer_.setInterval(1000); // 1sec periodic
+    connect(&statsTimer_, SIGNAL(timeout()),
+            this, SLOT(updateStats()));
 }
 
 ConfigAgent::~ConfigAgent()
@@ -74,6 +79,7 @@ void ConfigAgent::modifyPort(
     ::google::protobuf::Closure* done)
 {
     // TODO
+    // FIXME: interleaved streams mode not supported in web demo
     controller->SetFailed("Pending implementation");
 }
 
@@ -157,8 +163,18 @@ void ConfigAgent::startTransmit(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
+    for (int i = 0; i < request->port_id_size(); i++) {
+        int id = request->port_id(i).id();
+        if (id < ports_.size())
+            ports_[id]->startTransmit();
+    }
+
+    // At least one port is transmitting, so start timer if required
+    if (!statsTimer_.isActive())
+        statsTimer_.start();
+
     response->set_status(OstProto::Ack::kRpcSuccess);
-    controller->SetFailed("Packet Transmit is not supported in the web demo - please download the Ostinato Trial for all features");
+    controller->SetFailed("Port Stats is incomplete and inaccurate in the web demo - please download the Ostinato Trial for full and accurate stats");
 }
 
 void ConfigAgent::stopTransmit(
@@ -167,8 +183,21 @@ void ConfigAgent::stopTransmit(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
+    for (int i = 0; i < request->port_id_size(); i++) {
+        int id = request->port_id(i).id();
+        if (id < ports_.size())
+            ports_[id]->stopTransmit();
+    }
+
+    // If no port is transmitting, stop timer
+    if (statsTimer_.isActive()) {
+        bool anyTransmitOn = false;
+        for (int i = 0; i < ports_.size(); i++)
+            anyTransmitOn |= ports_.at(i)->isTransmitOn();
+        if (!anyTransmitOn)
+            statsTimer_.stop();
+    }
     response->set_status(OstProto::Ack::kRpcSuccess);
-    controller->SetFailed("Packet Transmit is not supported in the web demo - please download the Ostinato Trial for all features");
 }
 
 void ConfigAgent::startCapture(
@@ -206,12 +235,16 @@ void ConfigAgent::getStats(
     ::OstProto::PortStatsList* response,
     ::google::protobuf::Closure* done)
 {
+    // XXX: Ostinato GUI client does not alloc a new response message
+    // for every getStats RPC (unlike for other RPCs), so clear previous
+    // response first
+    response->clear_port_stats();
+
     for (int i = 0; i < request->port_id_size(); i++) {
-        int id = request->port_id(i).id();
-        if (id < ports_.size()) {
+        int portId = request->port_id(i).id();
+        if (portId < ports_.size()) {
             OstProto::PortStats *s = response->add_port_stats();
-            s->mutable_port_id()->set_id(id);
-            s->mutable_state()->set_link_state(OstProto::LinkStateDown);
+            s->CopyFrom(ports_[portId]->stats_);
         }
     }
 }
@@ -222,8 +255,13 @@ void ConfigAgent::clearStats(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
+    for (int i = 0; i < request->port_id_size(); i++) {
+        int portId = request->port_id(i).id();
+        if (portId < ports_.size()) {
+            ports_[portId]->clearStats();
+        }
+    }
     response->set_status(OstProto::Ack::kRpcSuccess);
-    controller->SetFailed("Pending implementation");
 }
 
 
@@ -233,7 +271,7 @@ void ConfigAgent::getStreamStats(
     ::OstProto::StreamStatsList* response,
     ::google::protobuf::Closure* done)
 {
-    controller->SetFailed("Pending implementation");
+    controller->SetFailed("Per Stream stats are not supported in the web demo - please download the Ostinato Trial for all features");
 }
 
 void ConfigAgent::clearStreamStats(
@@ -243,7 +281,7 @@ void ConfigAgent::clearStreamStats(
     ::google::protobuf::Closure* done)
 {
     response->set_status(OstProto::Ack::kRpcSuccess);
-    controller->SetFailed("Pending implementation");
+    controller->SetFailed("Per Stream stats are not supported in the web demo - please download the Ostinato Trial for all features");
 }
 
 
@@ -264,7 +302,27 @@ void ConfigAgent::build(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
+    QString notes;
+    int frameError = 0;
+    int portId = request->port_id().id();
     response->set_status(OstProto::Ack::kRpcSuccess);
+
+    if (ports_[portId]->isTransmitOn())
+        goto _port_busy;
+
+    frameError = ports_[portId]->buildPacketList();
+
+    if (frameError) {
+        notes += frameValueErrorNotes(portId, frameError);
+        response->set_status(OstProto::Ack::kRpcError);
+        response->set_notes(notes.toStdString());
+    } else
+        response->set_status(OstProto::Ack::kRpcSuccess);
+    return;
+
+_port_busy:
+    controller->SetFailed(QString("Port %1 build: operation disallowed "                                  "on transmitting port")
+                            .arg(portId).toStdString());
 }
 
 
@@ -385,6 +443,39 @@ void ConfigAgent::getDeviceNeighbors(
     quint32 portId = request->id();
     response->mutable_port_id()->set_id(ports_[portId]->id());
     controller->SetFailed("Get Neighbors - ARP/NDP resolution is not supported in the web demo - please download the Ostinato Trial for all features");
+}
+
+// ----- Private slots/methods ------
+//
+void ConfigAgent::updateStats()
+{
+    for (int i = 0; i < ports_.size(); i++) {
+        if (ports_.at(i)->isTransmitOn())
+            ports_.at(i)->updateStats();
+    }
+}
+
+QString ConfigAgent::frameValueErrorNotes(int portId, int error)
+{
+    if (!error)
+        return QString();
+
+    QString pfx = QString("Port %1: ").arg(portId);
+    auto errorFlags = static_cast<FrameValueAttrib::ErrorFlags>(error);
+
+    // If smac resolve fails, dmac will always fail - so check that first
+    // and report only that so as not to confuse users (they may not realize
+    // that without a source device, we have no ARP table to lookup for dmac)
+
+    if (errorFlags & FrameValueAttrib::UnresolvedSrcMacError)
+        return pfx + "Source mac resolve failed for one or more "
+                     "streams - Device matching stream's source IP not found\n";
+
+    if (errorFlags & FrameValueAttrib::UnresolvedDstMacError)
+        return pfx + "Destination mac resolve failed for one or more "
+                     "streams - possible ARP/ND failure\n";
+
+    return QString();
 }
 
 #pragma GCC diagnostic pop

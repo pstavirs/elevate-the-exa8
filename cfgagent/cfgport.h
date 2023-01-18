@@ -30,10 +30,31 @@ struct ConfigPort : public QObject
 {
     ConfigPort(int id);
     int id() { return data_.port_id().id(); }
+    bool isTransmitOn() { return stats_.state().is_transmit_on(); }
+
+    int buildPacketList();
+    void clearPacketList();
+
+    void startTransmit();
+    void stopTransmit();
+
+    void updateStats();
+    void clearStats();
 
     OstProto::Port data_;
+    OstProto::PortStats stats_;
     QHash<quint32, OstProto::Stream*> streams_;
     QHash<quint32, OstProto::DeviceGroup*> deviceGroups_;
+    struct TxPkts {
+        struct {
+            quint64 numPackets{0};
+            quint64 packetsPerSec{0};
+            quint64 bytesPerSec{0};
+        } cfg;
+        struct {
+            quint64 numPackets{0};
+        } current;
+    } txPkts_;
 };
 
 #endif

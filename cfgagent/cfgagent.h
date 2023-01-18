@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 #include "../rpc/sharedprotobufmessage.h"
 
 #include <QObject>
+#include <QTimer>
 
 struct ConfigPort;
 
@@ -171,8 +172,14 @@ public:
 signals:
     void notification(int notifType, SharedProtobufMessage notifData);
 
+private slots:
+    void updateStats();
+
 private:
+    QString frameValueErrorNotes(int portId, int error);
+
     QList<ConfigPort*> ports_;
+    QTimer statsTimer_;
 };
 
 #endif
