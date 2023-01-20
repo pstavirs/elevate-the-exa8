@@ -419,7 +419,13 @@ void ConfigAgent::getDeviceList(
 {
     quint32 portId = request->id();
     response->mutable_port_id()->set_id(ports_[portId]->id());
-    controller->SetFailed("Get Devices - Device Groups can only be configured, not emulated in the web demo - please download the Ostinato Trial for all features");
+
+    // For the web demo, don't return failure during the init phase
+    // when the client is retrieving state and not explicitly
+    // user initiated - this avoids an unnecessary error log in
+    // the web demo GUI at startup
+    if (!initPhase_)
+        controller->SetFailed("Get Devices - Device Groups can only be configured, not emulated in the web demo - please download the Ostinato Trial for all features");
 }
 
 
@@ -451,7 +457,15 @@ void ConfigAgent::getDeviceNeighbors(
 {
     quint32 portId = request->id();
     response->mutable_port_id()->set_id(ports_[portId]->id());
-    controller->SetFailed("Get Neighbors - ARP/NDP resolution is not supported in the web demo - please download the Ostinato Trial for all features");
+
+    // See note for similar check in getDeviceList() above
+    if (!initPhase_)
+        controller->SetFailed("Get Neighbors - ARP/NDP resolution is not supported in the web demo - please download the Ostinato Trial for all features");
+
+    // getDeviceNeighbors is the last RPC during init - if this is for
+    // the last port, mark init as done
+    if (portId == (ports_.size() - 1))
+        initPhase_ = false;
 }
 
 // ----- Private slots/methods ------

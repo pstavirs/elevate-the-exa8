@@ -180,6 +180,8 @@ private:
 
     QList<ConfigPort*> ports_;
     QTimer statsTimer_;
+
+    bool initPhase_{true};
 };
 
 #endif
