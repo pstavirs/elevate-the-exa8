@@ -194,8 +194,10 @@ MainWindow::MainWindow(QWidget *parent)
 
         if (QHostAddress(localDrone).protocol()
                 == QAbstractSocket::UnknownNetworkLayerProtocol) {
+#ifndef WEBDEMO
             logError(localDrone, "The Ostinato webapp cannot do DNS, "
                      "please specify the EXA8's IP address in the URL");
+#endif
             localDrone = "0.0.0.0";
         }
 

@@ -60,7 +60,7 @@ PortsWindow::PortsWindow(PortGroupList *pgl, QWidget *parent)
     applyMsg_ = new ApplyMessage();
     devicesWidget->setPortGroupList(plm);
 
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) && !defined(WEBDEMO)
     QString welcomeMsg = label->text();
     welcomeMsg.append("<p><b>The Ostinato Webapp is brand new and not exhaustively tested yet. Please use the native Ostinato controller application for production use!</b></p>");
     label->setText(welcomeMsg);
@@ -744,8 +744,7 @@ void PortsWindow::on_actionNew_Port_Group_triggered()
     auto inputDlg = new QInputDialog(this);
     inputDlg->setWindowTitle("Add Port Group");
     inputDlg->setInputMode(QInputDialog::TextInput);
-    inputDlg->setLabelText("Port Group IP Address[:Port]\n"
-                           "(webapps can't do DNS)");
+    inputDlg->setLabelText("Port Group IP Address[:Port]");
     inputDlg->setTextValue(lastNewPortGroup);
     connect(inputDlg, &QInputDialog::textValueSelected,
         [&](QString text) {
