@@ -41,7 +41,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 //   * goto first
 //   * 0 rate (top speed)
 //   * pps/bps rates
-// TODO: Bursts are not supported - yet
 // TODO: Rx (back to back) is not supported -yet
 
 ConfigPort::ConfigPort(int id)
@@ -81,14 +80,26 @@ int ConfigPort::buildPacketList()
         if (!s->core().is_enabled())
             continue;
 
+        quint32 numPackets;
+        double packetsPerSec;
+        if (s->control().unit() == OstProto::StreamControl::e_su_bursts) {
+            numPackets = s->control().num_bursts()
+                            * s->control().packets_per_burst();
+            packetsPerSec = s->control().bursts_per_sec()
+                                * s->control().packets_per_burst();
+        } else {
+            numPackets = s->control().num_packets();
+            packetsPerSec = s->control().packets_per_sec();
+        }
+
         // goto first - not really infinite loop, but large enough hopefully
         if (s->control().next() == OstProto::StreamControl::e_nw_goto_id)
             txPkts_.cfg.numPackets = ULLONG_MAX;
         else
-            txPkts_.cfg.numPackets = s->control().num_packets();
+            txPkts_.cfg.numPackets = numPackets;
 
         // Hard code max pps as 1000Mbps
-        txPkts_.cfg.packetsPerSec = s->control().packets_per_sec();
+        txPkts_.cfg.packetsPerSec = packetsPerSec;
         if (txPkts_.cfg.packetsPerSec == 0)
             txPkts_.cfg.packetsPerSec = 1e9/((s->core().frame_len()+20)*8);
 
