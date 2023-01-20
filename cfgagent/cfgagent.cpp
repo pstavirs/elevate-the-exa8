@@ -163,18 +163,27 @@ void ConfigAgent::startTransmit(
     ::OstProto::Ack* response,
     ::google::protobuf::Closure* done)
 {
+    bool multiStreams = false;
     for (int i = 0; i < request->port_id_size(); i++) {
         int id = request->port_id(i).id();
-        if (id < ports_.size())
+        if (id < ports_.size()) {
             ports_[id]->startTransmit();
+            if (ports_[id]->activeStreamCount_ > 1)
+                multiStreams = true;
+        }
     }
 
     // At least one port is transmitting, so start timer if required
     if (!statsTimer_.isActive())
         statsTimer_.start();
 
-    response->set_status(OstProto::Ack::kRpcSuccess);
-    controller->SetFailed("Port Stats is incomplete and inaccurate in the web demo - please download the Ostinato Trial for full and accurate stats");
+    if (multiStreams) {
+        response->set_status(OstProto::Ack::kRpcSuccess);
+        controller->SetFailed("Packet transmit is not supported in the web demo on ports with more than one stream - please enable only one stream or download the Ostinato Trial for multi-stream transmit");
+    } else {
+        response->set_status(OstProto::Ack::kRpcSuccess);
+        controller->SetFailed("Port Stats is incomplete and inaccurate in the web demo - please download the Ostinato Trial for full and accurate stats");
+    }
 }
 
 void ConfigAgent::stopTransmit(

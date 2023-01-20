@@ -45,6 +45,7 @@ struct ConfigPort : public QObject
     OstProto::PortStats stats_;
     QHash<quint32, OstProto::Stream*> streams_;
     QHash<quint32, OstProto::DeviceGroup*> deviceGroups_;
+    quint32 activeStreamCount_{0};
     struct TxPkts {
         struct {
             quint64 numPackets{0};

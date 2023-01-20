@@ -23,6 +23,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 #include <limits.h>
 
+// XXX: Tx/Stats notes
+// In this demo, no actual packets are crafted or sent out. Instead startTx
+// only updates the port stats appropriately to give an illusion that packets
+// are being transmitted.
+// The stats are updated by a 1s periodic stats timer which checks to see if
+// transmit state is ON before incrementing the stats. Instead of one timer
+// per port, cfgAgent runs a single timer for all ports as an optimization.
+// The stats are updated assuming we are sending at the configured rates.
+// While attempts have been made to make sure the stats are incremented
+// correctly for all cases, this has not been verified thoroughly.
+// Here are the cases that is checked -
+//   * auto Tx stop after fixed no. of pkts sent
+//   * startTx after auto stop
+//   * stopTx before auto stop
+//   * startTx after explicit stopTx
+//   * goto first
+//   * 0 rate (top speed)
+//   * pps/bps rates
+// TODO: Bursts are not supported - yet
+// TODO: Rx (back to back) is not supported -yet
+
 ConfigPort::ConfigPort(int id)
 {
     data_.mutable_port_id()->set_id(id);
@@ -46,16 +67,15 @@ int ConfigPort::buildPacketList()
     clearPacketList();
 
     // TODO: support multiple streams
-#if 0
-    int active = 0;
+    activeStreamCount_ = 0;
     for (OstProto::Stream *s : streamList) {
         if (s->core().is_enabled())
-            active++;
+            activeStreamCount_++;
     }
 
-    if (active > 1)
-        return 1;
-#endif
+    if (activeStreamCount_ > 1) {
+        return 0;
+    }
 
     for (OstProto::Stream *s : streamList) {
         if (!s->core().is_enabled())
