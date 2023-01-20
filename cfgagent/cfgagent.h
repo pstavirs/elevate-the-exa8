@@ -176,6 +176,7 @@ private slots:
     void updateStats();
 
 private:
+    ConfigPort* peerPort(int portId);
     QString frameValueErrorNotes(int portId, int error);
 
     QList<ConfigPort*> ports_;

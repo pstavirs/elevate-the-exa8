@@ -23,10 +23,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 #include <limits.h>
 
-// XXX: Tx/Stats notes
+// XXX: Tx/Rx/Stats notes
 // In this demo, no actual packets are crafted or sent out. Instead startTx
 // only updates the port stats appropriately to give an illusion that packets
-// are being transmitted.
+// are being transmitted. If a port has a back-to-back peer port configured,
+// we update the peer's rx counters by the same as our Tx.
 // The stats are updated by a 1s periodic stats timer which checks to see if
 // transmit state is ON before incrementing the stats. Instead of one timer
 // per port, cfgAgent runs a single timer for all ports as an optimization.
@@ -41,8 +42,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 //   * goto first
 //   * 0 rate (top speed)
 //   * pps/bps rates
-// TODO: Rx (back to back) is not supported -yet
-
+//   * rx == tx between peers for all the above cases
 ConfigPort::ConfigPort(int id)
 {
     data_.mutable_port_id()->set_id(id);
@@ -138,11 +138,16 @@ void ConfigPort::stopTransmit()
 
     stats_.set_tx_pps(0);
     stats_.set_tx_bps(0);
+
+    if (peerPort_) {
+        peerPort_->stats_.set_rx_pps(0);
+        peerPort_->stats_.set_rx_bps(0);
+    }
 }
 
 void ConfigPort::updateStats()
 {
-    quint64 pkts;
+    quint64 pkts = 0;
 
     // Packets left to Tx?
     if (txPkts_.current.numPackets) {
@@ -159,6 +164,23 @@ void ConfigPort::updateStats()
         stats_.set_tx_bps(txPkts_.cfg.bytesPerSec);
     } else {
         stopTransmit();
+    }
+
+    // Update peer port Rx stats, if we updated Tx stats
+    if (peerPort_) {
+        if (pkts) {
+            peerPort_->stats_.set_rx_pkts(peerPort_->stats_.rx_pkts() + pkts);
+            peerPort_->stats_.set_rx_bytes(peerPort_->stats_.rx_bytes() +
+                                                txPkts_.cfg.bytesPerSec);
+        }
+
+        if (txPkts_.current.numPackets) {
+            peerPort_->stats_.set_rx_pps(pkts);
+            peerPort_->stats_.set_rx_bps(txPkts_.cfg.bytesPerSec);
+        } else {
+            peerPort_->stats_.set_rx_pps(0);
+            peerPort_->stats_.set_rx_bps(0);
+        }
     }
 }
 

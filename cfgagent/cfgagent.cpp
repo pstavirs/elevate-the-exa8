@@ -32,6 +32,10 @@ ConfigAgent::ConfigAgent(int numPorts)
         ports_.append(new ConfigPort(i));
     }
 
+    for (int i = 0; i < numPorts; i++) {
+        ports_[i]->setPeer(peerPort(i));
+    }
+
     statsTimer_.setInterval(1000); // 1sec periodic
     connect(&statsTimer_, SIGNAL(timeout()),
             this, SLOT(updateStats()));
@@ -464,7 +468,7 @@ void ConfigAgent::getDeviceNeighbors(
 
     // getDeviceNeighbors is the last RPC during init - if this is for
     // the last port, mark init as done
-    if (portId == (ports_.size() - 1))
+    if ((int)portId == (ports_.size() - 1))
         initPhase_ = false;
 }
 
@@ -476,6 +480,14 @@ void ConfigAgent::updateStats()
         if (ports_.at(i)->isTransmitOn())
             ports_.at(i)->updateStats();
     }
+}
+
+ConfigPort* ConfigAgent::peerPort(int portId)
+{
+    // Back to back connections: 0-1, 2-3, ...
+    int peer = portId & 0x1 ? portId - 1 : portId + 1;
+
+    return ports_[peer];
 }
 
 QString ConfigAgent::frameValueErrorNotes(int portId, int error)
