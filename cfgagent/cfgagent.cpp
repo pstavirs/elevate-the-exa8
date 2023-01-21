@@ -487,7 +487,7 @@ ConfigPort* ConfigAgent::peerPort(int portId)
     // Back to back connections: 0-1, 2-3, ...
     int peer = portId & 0x1 ? portId - 1 : portId + 1;
 
-    return ports_[peer];
+    return peer < ports_.size() ? ports_[peer] : nullptr;
 }
 
 QString ConfigAgent::frameValueErrorNotes(int portId, int error)

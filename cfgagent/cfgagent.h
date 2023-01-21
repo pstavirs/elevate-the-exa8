@@ -32,7 +32,7 @@ class ConfigAgent: public QObject, public OstProto::OstService
 {
     Q_OBJECT
 public:
-    ConfigAgent(int numPorts=2);
+    ConfigAgent(int numPorts=3);
     virtual ~ConfigAgent();
 
     /* Methods provided by the service */

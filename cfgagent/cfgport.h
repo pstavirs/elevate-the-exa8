@@ -31,7 +31,7 @@ struct ConfigPort : public QObject
     ConfigPort(int id);
     int id() { return data_.port_id().id(); }
     bool isTransmitOn() { return stats_.state().is_transmit_on(); }
-    void setPeer(ConfigPort *peer) { peerPort_ = peer; }
+    void setPeer(ConfigPort *peer);
 
     int buildPacketList();
     void clearPacketList();

@@ -51,7 +51,15 @@ ConfigPort::ConfigPort(int id)
     // TODO: speed 'n mtu
 
     stats_.mutable_port_id()->CopyFrom(data_.port_id());
-    stats_.mutable_state()->set_link_state(OstProto::LinkStateUp);
+    stats_.mutable_state()->set_link_state(OstProto::LinkStateDown);
+}
+
+void ConfigPort::setPeer(ConfigPort *peer)
+{
+    if (peer) {
+        peerPort_ = peer;
+        stats_.mutable_state()->set_link_state(OstProto::LinkStateUp);
+    }
 }
 
 int ConfigPort::buildPacketList()
@@ -64,6 +72,10 @@ int ConfigPort::buildPacketList()
         streamList[s->core().ordinal()] = s;
 
     clearPacketList();
+
+    if (stats_.state().link_state() == OstProto::LinkStateDown) {
+        return 0;
+    }
 
     // TODO: support multiple streams
     activeStreamCount_ = 0;
